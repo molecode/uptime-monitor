@@ -1,0 +1,458 @@
+<!DOCTYPE html>
+<html data-theme="{{ theme|default('dark') }}" data-view="{{ view|default('standard') }}">
+<head>
+    <title>Service Monitor</title>
+    <meta http-equiv="refresh" content="30">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+</head>
+<body>
+    <div class="page-header">
+        <h1>Service Monitor Status</h1>
+        <div class="nav-actions">
+            <div class="refresh-info">
+                Auto-refresh: <span class="refresh-countdown">30</span>s
+            </div>
+            
+            <!-- View toggle button -->
+            <button id="view-toggle" class="btn view-btn" title="Toggle view mode">
+                <span class="view-icon"></span>
+                <span class="view-text">
+                    {% if view|default('standard') == 'standard' %}
+                    Compact View
+                    {% else %}
+                    Standard View
+                    {% endif %}
+                </span>
+            </button>
+            
+            <!-- Theme toggle button -->
+            <a href="{{ url_for('toggle_theme') }}" class="btn theme-btn" title="Toggle dark/light mode">
+                {% if theme|default('dark') == 'dark' %}
+                <span class="theme-icon sun-icon"></span>Light Mode
+                {% else %}
+                <span class="theme-icon moon-icon"></span>Dark Mode
+                {% endif %}
+            </a>
+            
+            <a href="{{ url_for('logout') }}" class="btn">Log Out</a>
+        </div>
+    </div>
+    <div id="service-container" class="service-grid">
+    {% for name, service in services.items() %}
+        <div class="service-card">
+            <div class="header">
+                <h2>{{ name }}</h2>
+                <span class="status-{{ service.status.lower() }}">
+                    {{ service.status }}
+                </span>
+            </div>
+            <div class="service-type">Type: {{ service.type }}</div>
+            <div class="service-details">
+                {% if service.host %}
+                <div class="service-detail-item">Host: {{ service.host }}</div>
+                {% endif %}
+                {% if service.url %}
+                <div class="service-detail-item">URL: <a href="{{ service.url }}" target="_blank" rel="noopener noreferrer">{{ service.url }}</a></div>
+                {% endif %}
+                {% if service.port %}
+                <div class="service-detail-item">Port: {{ service.port }}</div>
+                {% endif %}
+            </div>
+            {% if service.status == 'DOWN' and service.down_since %}
+                <div class="downtime">
+                    Down since: {{ service.down_since }}
+                </div>
+            {% endif %}
+            <div class="last-check">
+                Last check: {{ service.last_check }}
+            </div>
+        </div>
+    {% endfor %}
+    </div>
+
+    <script>
+        // Countdown timer for auto-refresh
+        function updateCountdown() {
+            let count = 30;
+            const counter = document.querySelector('.refresh-countdown');
+            setInterval(() => {
+                count -= 1;
+                if (count >= 0) {
+                    counter.textContent = count;
+                }
+            }, 1000);
+        }
+        updateCountdown();
+
+        // Helper function to format the service type with port badge if available
+        function formatServiceTypeWithPort(typeValue, serviceDetails) {
+            // Try to find port information
+            const portElement = Array.from(serviceDetails.querySelectorAll('.service-detail-item')).find(el => 
+                el.textContent.trim().startsWith('Port:')
+            );
+            
+            if (portElement) {
+                const portText = portElement.textContent.trim();
+                const portNumber = portText.replace('Port:', '').trim();
+                
+                return `${typeValue} <span class="port-badge">${portNumber}</span>`;
+            }
+            
+            return typeValue;
+        }
+
+        // View toggle functionality
+        document.getElementById('view-toggle').addEventListener('click', function() {
+            const html = document.documentElement;
+            const container = document.getElementById('service-container');
+            const viewText = document.querySelector('.view-text');
+            
+            if (html.getAttribute('data-view') === 'standard') {
+                html.setAttribute('data-view', 'compact');
+                container.classList.remove('service-grid');
+                container.classList.add('service-compact');
+                viewText.textContent = 'Standard View';
+                localStorage.setItem('preferredView', 'compact');
+                
+                // Add table header for compact view if it doesn't exist
+                if (!document.querySelector('.service-compact-header')) {
+                    const header = document.createElement('div');
+                    header.className = 'service-compact-header';
+                    
+                    // Create header cells
+                    const nameHeader = document.createElement('div');
+                    nameHeader.className = 'header-cell';
+                    nameHeader.textContent = 'Service Name';
+                    
+                    const typeHeader = document.createElement('div');
+                    typeHeader.className = 'header-cell';
+                    typeHeader.textContent = 'Type';
+                    
+                    const statusHeader = document.createElement('div');
+                    statusHeader.className = 'header-cell';
+                    statusHeader.textContent = 'Status';
+                    
+                    const lastCheckHeader = document.createElement('div');
+                    lastCheckHeader.className = 'header-cell';
+                    lastCheckHeader.textContent = 'Last Check';
+                    
+                    // Append cells to header - switched order of type and status
+                    header.appendChild(nameHeader);
+                    header.appendChild(typeHeader);
+                    header.appendChild(statusHeader);
+                    header.appendChild(lastCheckHeader);
+                    
+                    // Insert header before first service card
+                    container.insertBefore(header, container.firstChild);
+                }
+                
+                // Restructure service cards for compact view
+                document.querySelectorAll('.service-card').forEach(card => {
+                    // Extract elements
+                    const header = card.querySelector('.header');
+                    const status = card.querySelector('.header span[class^="status-"]');
+                    const serviceType = card.querySelector('.service-type');
+                    const serviceDetails = card.querySelector('.service-details');
+                    
+                    if (status && status.parentNode === header) {
+                        // Remove status from header
+                        header.removeChild(status);
+                    }
+                    
+                    // First insert type after header, then status after type (switching their order)
+                    if (serviceType && serviceDetails) {
+                        // Directly modify the service type text content
+                        const typeText = serviceType.textContent.trim();
+                        const typeValue = typeText.replace('Type: ', '');
+                        
+                        // Store original text for restoration when switching back
+                        serviceType.dataset.originalText = typeText;
+                        
+                        // Mark HTTP and HTTPS services for styling
+                        if (typeValue.toLowerCase() === 'http' || typeValue.toLowerCase() === 'https') {
+                            serviceType.setAttribute('data-has-url', 'true');
+                            
+                            // Find URL from service details
+                            const urlElement = Array.from(serviceDetails.querySelectorAll('.service-detail-item')).find(el => 
+                                el.textContent.trim().startsWith('URL:')
+                            );
+                            
+                            if (urlElement) {
+                                const urlLink = urlElement.querySelector('a');
+                                if (urlLink) {
+                                    const url = urlLink.getAttribute('href');
+                                    const nameElement = card.querySelector('.header h2');
+                                    
+                                    // Save original content for restoration
+                                    nameElement.dataset.originalText = nameElement.textContent;
+                                    
+                                    // Clear the name element and add a link
+                                    nameElement.innerHTML = '';
+                                    const link = document.createElement('a');
+                                    link.href = url;
+                                    link.target = '_blank';
+                                    link.rel = 'noopener noreferrer';
+                                    link.textContent = nameElement.dataset.originalText;
+                                    link.className = 'service-link';
+                                    nameElement.appendChild(link);
+                                }
+                            }
+                        }
+                        
+                        // Format the type with port badge if available
+                        serviceType.innerHTML = formatServiceTypeWithPort(typeValue, serviceDetails);
+                        
+                        // Clear the card and rebuild with correct order
+                        const elements = Array.from(card.children);
+                        elements.forEach(el => {
+                            if (el !== header) {
+                                card.removeChild(el);
+                            }
+                        });
+                        
+                        // Append in new order: header, type, status, others
+                        card.appendChild(serviceType);  // Type comes first
+                        card.appendChild(status);       // Status comes second
+                        card.appendChild(serviceDetails);
+                        
+                        // Re-add downtime and last check in correct order
+                        const downtime = elements.find(el => el.classList.contains('downtime'));
+                        if (downtime) {
+                            card.appendChild(downtime);
+                        }
+                        
+                        const lastCheck = elements.find(el => el.classList.contains('last-check'));
+                        if (lastCheck) {
+                            card.appendChild(lastCheck);
+                        }
+                    }
+                });
+            } else {
+                html.setAttribute('data-view', 'standard');
+                container.classList.remove('service-compact');
+                container.classList.add('service-grid');
+                viewText.textContent = 'Compact View';
+                localStorage.setItem('preferredView', 'standard');
+                
+                // Remove table header for standard view
+                const header = document.querySelector('.service-compact-header');
+                if (header) {
+                    container.removeChild(header);
+                }
+                
+                // Restore original structure
+                document.querySelectorAll('.service-card').forEach(card => {
+                    // Restore original service type text
+                    const typeElement = card.querySelector('.service-type');
+                    if (typeElement && typeElement.dataset.originalText) {
+                        typeElement.textContent = typeElement.dataset.originalText;
+                    }
+                    
+                    // Restore original service name (removing link)
+                    const nameElement = card.querySelector('.header h2');
+                    if (nameElement && nameElement.dataset.originalText) {
+                        nameElement.textContent = nameElement.dataset.originalText;
+                    }
+                    
+                    // Move status back inside header
+                    const status = card.querySelector('span[class^="status-"]');
+                    const header = card.querySelector('.header');
+                    if (status && status.parentNode !== header) {
+                        // Clear the existing children of header except h2
+                        const h2 = header.querySelector('h2');
+                        header.innerHTML = '';
+                        header.appendChild(h2);
+                        header.appendChild(status);
+                    }
+                    
+                    // Move service-type to after header
+                    const serviceType = card.querySelector('.service-type');
+                    if (serviceType) {
+                        const serviceDetails = card.querySelector('.service-details');
+                        if (serviceDetails) {
+                            card.insertBefore(serviceType, serviceDetails);
+                        }
+                    }
+                });
+            }
+        });
+
+        // Load user preference on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            const savedView = localStorage.getItem('preferredView');
+            if (savedView) {
+                const html = document.documentElement;
+                const container = document.getElementById('service-container');
+                const viewText = document.querySelector('.view-text');
+                
+                if (savedView === 'compact' && html.getAttribute('data-view') !== 'compact') {
+                    html.setAttribute('data-view', 'compact');
+                    container.classList.remove('service-grid');
+                    container.classList.add('service-compact');
+                    viewText.textContent = 'Standard View';
+                    
+                    // Add table header for compact view
+                    if (!document.querySelector('.service-compact-header')) {
+                        const header = document.createElement('div');
+                        header.className = 'service-compact-header';
+                        
+                        // Create header cells
+                        const nameHeader = document.createElement('div');
+                        nameHeader.className = 'header-cell';
+                        nameHeader.textContent = 'Service Name';
+                        
+                        const typeHeader = document.createElement('div');
+                        typeHeader.className = 'header-cell';
+                        typeHeader.textContent = 'Type';
+                        
+                        const statusHeader = document.createElement('div');
+                        statusHeader.className = 'header-cell';
+                        statusHeader.textContent = 'Status';
+                        
+                        const lastCheckHeader = document.createElement('div');
+                        lastCheckHeader.className = 'header-cell';
+                        lastCheckHeader.textContent = 'Last Check';
+                        
+                        // Append cells to header - switched order of type and status
+                        header.appendChild(nameHeader);
+                        header.appendChild(typeHeader);
+                        header.appendChild(statusHeader);
+                        header.appendChild(lastCheckHeader);
+                        
+                        // Insert header before first service card
+                        container.insertBefore(header, container.firstChild);
+                    }
+                    
+                    // Restructure service cards for compact view
+                    document.querySelectorAll('.service-card').forEach(card => {
+                        // Extract elements
+                        const header = card.querySelector('.header');
+                        const status = card.querySelector('.header span[class^="status-"]');
+                        const serviceType = card.querySelector('.service-type');
+                        const serviceDetails = card.querySelector('.service-details');
+                        
+                        if (status && status.parentNode === header) {
+                            // Remove status from header
+                            header.removeChild(status);
+                        }
+                        
+                        // First insert type after header, then status after type (switching their order)
+                        if (serviceType && serviceDetails) {
+                            // Directly modify the service type text content
+                            const typeText = serviceType.textContent.trim();
+                            const typeValue = typeText.replace('Type: ', '');
+                            
+                            // Store original text for restoration when switching back
+                            serviceType.dataset.originalText = typeText;
+                            
+                            // Mark HTTP and HTTPS services for styling
+                            if (typeValue.toLowerCase() === 'http' || typeValue.toLowerCase() === 'https') {
+                                serviceType.setAttribute('data-has-url', 'true');
+                                
+                                // Find URL from service details
+                                const urlElement = Array.from(serviceDetails.querySelectorAll('.service-detail-item')).find(el => 
+                                    el.textContent.trim().startsWith('URL:')
+                                );
+                                
+                                if (urlElement) {
+                                    const urlLink = urlElement.querySelector('a');
+                                    if (urlLink) {
+                                        const url = urlLink.getAttribute('href');
+                                        const nameElement = card.querySelector('.header h2');
+                                        
+                                        // Save original content for restoration
+                                        nameElement.dataset.originalText = nameElement.textContent;
+                                        
+                                        // Clear the name element and add a link
+                                        nameElement.innerHTML = '';
+                                        const link = document.createElement('a');
+                                        link.href = url;
+                                        link.target = '_blank';
+                                        link.rel = 'noopener noreferrer';
+                                        link.textContent = nameElement.dataset.originalText;
+                                        link.className = 'service-link';
+                                        nameElement.appendChild(link);
+                                    }
+                                }
+                            }
+                            
+                            // Format the type with port badge if available
+                            serviceType.innerHTML = formatServiceTypeWithPort(typeValue, serviceDetails);
+                            
+                            // Clear the card and rebuild with correct order
+                            const elements = Array.from(card.children);
+                            elements.forEach(el => {
+                                if (el !== header) {
+                                    card.removeChild(el);
+                                }
+                            });
+                            
+                            // Append in new order: header, type, status, others
+                            card.appendChild(serviceType);  // Type comes first
+                            card.appendChild(status);       // Status comes second
+                            card.appendChild(serviceDetails);
+                            
+                            // Re-add downtime and last check in correct order
+                            const downtime = elements.find(el => el.classList.contains('downtime'));
+                            if (downtime) {
+                                card.appendChild(downtime);
+                            }
+                            
+                            const lastCheck = elements.find(el => el.classList.contains('last-check'));
+                            if (lastCheck) {
+                                card.appendChild(lastCheck);
+                            }
+                        }
+                    });
+                } else if (savedView === 'standard' && html.getAttribute('data-view') !== 'standard') {
+                    html.setAttribute('data-view', 'standard');
+                    container.classList.remove('service-compact');
+                    container.classList.add('service-grid');
+                    viewText.textContent = 'Compact View';
+                    
+                    // Remove table header for standard view
+                    const header = document.querySelector('.service-compact-header');
+                    if (header) {
+                        container.removeChild(header);
+                    }
+                    
+                    // Restore original structure
+                    document.querySelectorAll('.service-card').forEach(card => {
+                        // Restore original service type text
+                        const typeElement = card.querySelector('.service-type');
+                        if (typeElement && typeElement.dataset.originalText) {
+                            typeElement.textContent = typeElement.dataset.originalText;
+                        }
+                        
+                        // Restore original service name (removing link)
+                        const nameElement = card.querySelector('.header h2');
+                        if (nameElement && nameElement.dataset.originalText) {
+                            nameElement.textContent = nameElement.dataset.originalText;
+                        }
+                        
+                        // Move status back inside header
+                        const status = card.querySelector('span[class^="status-"]');
+                        const header = card.querySelector('.header');
+                        if (status && status.parentNode !== header) {
+                            // Clear the existing children of header except h2
+                            const h2 = header.querySelector('h2');
+                            header.innerHTML = '';
+                            header.appendChild(h2);
+                            header.appendChild(status);
+                        }
+                        
+                        // Move service-type to after header
+                        const serviceType = card.querySelector('.service-type');
+                        if (serviceType) {
+                            const serviceDetails = card.querySelector('.service-details');
+                            if (serviceDetails) {
+                                card.insertBefore(serviceType, serviceDetails);
+                            }
+                        }
+                    });
+                }
+            }
+        });
+    </script>
+</body>
+</html> 

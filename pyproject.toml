@@ -1,0 +1,32 @@
+[project]
+name = "uptime-monitor"
+version = "0.1"
+description = "Add your description here"
+readme = "README.md"
+authors = [
+    { name = "Timo", email = "timo@timoschaepe.de" }
+]
+requires-python = ">=3.12"
+dependencies = [
+    "aiohttp>=3.9.3",
+    "colorama>=0.4.6",
+    "flask>=3.1.0",
+    "flask-login>=0.6.3",
+    "ping3>=4.0.8",
+    "pytz>=2024.1",
+    "pyyaml>=6.0.2",
+    "rich>=13.9.4",
+]
+
+[project.scripts]
+uptime-monitor = "uptime_monitor:run"
+uptime-dashboard = "uptime_monitor.dashboard:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[dependency-groups]
+dev = [
+    "ruff>=0.9.9",
+]

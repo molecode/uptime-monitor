@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html data-theme="{{ theme|default('dark') }}">
+<head>
+    <title>Login - Service Monitor</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+</head>
+<body class="login-page">
+    <div class="login-container">
+        <div class="login-header">
+            <h1>Service Monitor</h1>
+            <p>Enter password to access the dashboard</p>
+        </div>
+        
+        {% if error %}
+        <div class="error-message">
+            {{ error }}
+        </div>
+        {% endif %}
+        
+        <form class="login-form" method="POST" action="{{ url_for('login') }}">
+            <div class="form-group">
+                <label for="password">Password</label>
+                <input type="password" id="password" name="password" required autofocus>
+            </div>
+            <button type="submit" class="login-button">Log In</button>
+        </form>
+        
+        <div class="theme-toggle">
+            <a href="{{ url_for('toggle_theme') }}">
+                {% if theme|default('dark') == 'dark' %}
+                <span class="theme-icon sun-icon"></span>Switch to Light Mode
+                {% else %}
+                <span class="theme-icon moon-icon"></span>Switch to Dark Mode
+                {% endif %}
+            </a>
+        </div>
+    </div>
+</body>
+</html> 

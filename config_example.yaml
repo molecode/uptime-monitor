@@ -1,0 +1,45 @@
+email:
+  smtp_server: <smtp_password>
+  smtp_port: 587
+  username: <sender>
+  password: <password>
+  notification_email: <recipient>
+
+# Global timezone setting (optional, defaults to Europe/Berlin)
+timezone: Europe/Berlin
+
+# Dashboard configuration
+dashboard:
+  password: secure_password_here  # Change this to a secure password
+
+healthcheck:
+  url: https://hc-ping.com/<hc-ping-id>
+  interval: 3600  # in seconds (1 hour)
+
+# Default service configuration
+defaults: &default_service
+  timeout: 5
+  interval: 300 # in seconds (5 minutes)
+  max_tries: 3
+
+services:
+  web-example-org:
+    <<: *default_service  # Inherit from default
+    type: http
+    url: https://example.org
+
+  ssh-example-org:
+    <<: *default_service  # Inherit from default
+    type: port
+    host: example.org
+    port: 22
+
+  ping-example-org:
+    <<: *default_service  # Inherit from default
+    type: ping
+    host: example-org
+    maintenance_window:  # Override default
+      start: "23:00"
+      end: "01:00"
+    # Optional: service-specific timezone
+    # timezone: America/New_York
