@@ -17,4 +17,5 @@ fly.toml
 .claude/
 claude_chat_*.md
 claude_session_*.json
+CLAUDE.md
 
