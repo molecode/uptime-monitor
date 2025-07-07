@@ -13,3 +13,9 @@ wheels/
 config.yaml
 fly.toml
 
+# Claude Code specific files
+.claude/
+claude_chat_*.md
+claude_session_*.json
+CLAUDE.md
+
