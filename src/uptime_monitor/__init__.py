@@ -2,7 +2,7 @@ import asyncio
 import logging
 import smtplib
 import socket
-from datetime import datetime
+from datetime import datetime, timedelta
 from email.message import EmailMessage
 from typing import Dict
 
@@ -208,7 +208,7 @@ class ServiceMonitor:
         # If end time is earlier than start time, it means the window crosses midnight
         # So we need to add one day to the end time
         if end_dt < start_dt:
-            end_dt = end_dt.replace(day=end_dt.day + 1)
+            end_dt = end_dt + timedelta(days=1)
 
         # Get the time components for comparison
         start = start_dt.time()
