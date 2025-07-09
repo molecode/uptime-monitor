@@ -125,7 +125,7 @@ class WebServiceMonitor(ServiceMonitor):
         for name, service in self.config["services"].items():
             # Check if service is in maintenance window
             is_in_maintenance = self._is_in_maintenance(service)
-            
+
             # Get the state of the service
             state = self.service_states.get(name, None)
 
