@@ -227,8 +227,17 @@ class ServiceMonitor:
                 async with session.get(
                     service["url"], timeout=service["timeout"]
                 ) as response:
-                    return response.status == 200
-        except Exception:
+                    if response.status == 200:
+                        return True
+                    else:
+                        logging.warning(
+                            f"HTTP check failed for {service['url']}: status code {response.status}"
+                        )
+                        return False
+        except Exception as e:
+            logging.warning(
+                f"HTTP check exception for {service['url']}: {type(e).__name__}: {str(e)}"
+            )
             return False
 
     async def _check_port(self, service: Dict) -> bool:
@@ -378,7 +387,9 @@ class ServiceMonitor:
                                 f"Healthcheck ping failed with status code: {response.status}"
                             )
             except Exception as e:
-                logging.error(f"Failed to ping healthcheck: {e}")
+                logging.error(
+                    f"Failed to ping healthcheck: {type(e).__name__}: {str(e)}"
+                )
 
             # Sleep for the configured interval (default 1 hour)
             await asyncio.sleep(self.healthcheck_config.get("interval", 3600))
@@ -396,15 +407,12 @@ class ServiceMonitor:
             )
 
         # Wait for all tasks to complete (they run indefinitely unless there's an exception)
-        # TODO: Without try except to debug the we had before:
-        # [03/30/25 22:00:04] ERROR    Error in monitoring: day is out of range for month
-        await asyncio.gather(*tasks)
-        # try:
-        #     await asyncio.gather(*tasks)
-        # except asyncio.CancelledError:
-        #     logging.info("Monitoring tasks cancelled")
-        # except Exception as e:
-        #     logging.error(f"Error in monitoring: {e}")
+        try:
+            await asyncio.gather(*tasks)
+        except asyncio.CancelledError:
+            logging.info("Monitoring tasks cancelled")
+        except Exception as e:
+            logging.error(f"Error in monitoring: {e}")
 
 
 async def main():
