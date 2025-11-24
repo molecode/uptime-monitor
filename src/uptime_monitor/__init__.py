@@ -378,7 +378,7 @@ class ServiceMonitor:
             try:
                 async with aiohttp.ClientSession() as session:
                     async with session.get(
-                        self.healthcheck_config["url"], timeout=300
+                        self.healthcheck_config["url"], timeout=600
                     ) as response:
                         if response.status == 200:
                             logging.info("Healthcheck ping successful")
