@@ -8,14 +8,14 @@ authors = [
 ]
 requires-python = ">=3.12"
 dependencies = [
-    "aiohttp>=3.9.3",
-    "colorama>=0.4.6",
-    "flask>=3.1.0",
-    "flask-login>=0.6.3",
-    "ping3>=4.0.8",
-    "pytz>=2024.1",
-    "pyyaml>=6.0.2",
-    "rich>=13.9.4",
+    "aiohttp==3.9.3",
+    "colorama==0.4.6",
+    "flask==3.1.0",
+    "flask-login==0.6.3",
+    "ping3==4.0.8",
+    "pytz==2024.1",
+    "pyyaml==6.0.2",
+    "rich==13.9.4",
 ]
 
 [project.scripts]
@@ -28,11 +28,11 @@ build-backend = "hatchling.build"
 
 [dependency-groups]
 dev = [
-    "pytest>=8.4.1",
-    "pytest-asyncio>=0.24.0",
-    "pytest-cov>=6.2.1",
-    "pytest-sugar>=1.0.0",
-    "ruff>=0.9.9",
+    "pytest==8.4.1",
+    "pytest-asyncio==0.24.0",
+    "pytest-cov==6.2.1",
+    "pytest-sugar==1.0.0",
+    "ruff==0.9.9",
 ]
 
 [tool.pytest.ini_options]
@@ -56,20 +56,6 @@ omit = [
     "*/__pycache__/*",
     "*/venv/*",
     "*/.venv/*"
-]
-
-[tool.coverage.report]
-exclude_lines = [
-    "pragma: no cover",
-    "def __repr__",
-    "if self.debug:",
-    "if settings.DEBUG",
-    "raise AssertionError",
-    "raise NotImplementedError",
-    "if 0:",
-    "if __name__ == .__main__.:",
-    "class .*\\bProtocol\\):",
-    "@(abc\\.)?abstractmethod"
 ]
 
 [tool.coverage.html]
