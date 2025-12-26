@@ -135,12 +135,17 @@
                     const lastCheckHeader = document.createElement('div');
                     lastCheckHeader.className = 'header-cell';
                     lastCheckHeader.textContent = 'Last Check';
-                    
+
+                    const downtimeHeader = document.createElement('div');
+                    downtimeHeader.className = 'header-cell';
+                    downtimeHeader.textContent = 'Downtime';
+
                     // Append cells to header - switched order of type and status
                     header.appendChild(nameHeader);
                     header.appendChild(typeHeader);
                     header.appendChild(statusHeader);
                     header.appendChild(lastCheckHeader);
+                    header.appendChild(downtimeHeader);
                     
                     // Insert header before first service card
                     container.insertBefore(header, container.firstChild);
@@ -215,16 +220,20 @@
                         card.appendChild(status);       // Status comes second
                         card.appendChild(serviceDetails);
                         
-                        // Re-add downtime and last check in correct order
-                        const downtime = elements.find(el => el.classList.contains('downtime'));
-                        if (downtime) {
-                            card.appendChild(downtime);
-                        }
-                        
+                        // Re-add last check and downtime in correct order
                         const lastCheck = elements.find(el => el.classList.contains('last-check'));
                         if (lastCheck) {
                             card.appendChild(lastCheck);
                         }
+
+                        // Ensure downtime cell exists (create empty one if needed)
+                        let downtime = elements.find(el => el.classList.contains('downtime'));
+                        if (!downtime) {
+                            downtime = document.createElement('div');
+                            downtime.className = 'downtime';
+                            downtime.textContent = '';
+                        }
+                        card.appendChild(downtime);
                     }
                 });
             } else {
@@ -312,12 +321,17 @@
                         const lastCheckHeader = document.createElement('div');
                         lastCheckHeader.className = 'header-cell';
                         lastCheckHeader.textContent = 'Last Check';
-                        
+
+                        const downtimeHeader = document.createElement('div');
+                        downtimeHeader.className = 'header-cell';
+                        downtimeHeader.textContent = 'Downtime';
+
                         // Append cells to header - switched order of type and status
                         header.appendChild(nameHeader);
                         header.appendChild(typeHeader);
                         header.appendChild(statusHeader);
                         header.appendChild(lastCheckHeader);
+                        header.appendChild(downtimeHeader);
                         
                         // Insert header before first service card
                         container.insertBefore(header, container.firstChild);
@@ -392,16 +406,20 @@
                             card.appendChild(status);       // Status comes second
                             card.appendChild(serviceDetails);
                             
-                            // Re-add downtime and last check in correct order
-                            const downtime = elements.find(el => el.classList.contains('downtime'));
-                            if (downtime) {
-                                card.appendChild(downtime);
-                            }
-                            
+                            // Re-add last check and downtime in correct order
                             const lastCheck = elements.find(el => el.classList.contains('last-check'));
                             if (lastCheck) {
                                 card.appendChild(lastCheck);
                             }
+
+                            // Ensure downtime cell exists (create empty one if needed)
+                            let downtime = elements.find(el => el.classList.contains('downtime'));
+                            if (!downtime) {
+                                downtime = document.createElement('div');
+                                downtime.className = 'downtime';
+                                downtime.textContent = '';
+                            }
+                            card.appendChild(downtime);
                         }
                     });
                 } else if (savedView === 'standard' && html.getAttribute('data-view') !== 'standard') {
