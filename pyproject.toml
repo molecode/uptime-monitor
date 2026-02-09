@@ -15,7 +15,7 @@ dependencies = [
     "ping3==5.1.5",
     "pytz==2025.2",
     "pyyaml==6.0.3",
-    "rich==14.3.1",
+    "rich==14.3.2",
 ]
 
 [project.scripts]
