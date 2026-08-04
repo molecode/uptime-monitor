@@ -9,6 +9,9 @@ wheels/
 # Virtual environments
 .venv
 
+# Test coverage artifacts
+.coverage
+
 *.log
 config.yaml
 fly.toml
