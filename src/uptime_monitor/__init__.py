@@ -26,6 +26,8 @@ custom_theme = Theme(
 )
 console = Console(theme=custom_theme)
 
+logger = logging.getLogger(__name__)
+
 # Default timezone
 DEFAULT_TIMEZONE = "Europe/Berlin"
 
@@ -42,9 +44,9 @@ class ServiceMonitor:
         self.timezone = self.config.get("timezone", DEFAULT_TIMEZONE)
         try:
             self.tz = pytz.timezone(self.timezone)
-            logging.info(f"Using timezone: {self.timezone}")
+            logger.info(f"Using timezone: {self.timezone}")
         except pytz.exceptions.UnknownTimeZoneError:
-            logging.warning(
+            logger.warning(
                 f"Unknown timezone: {self.timezone}, falling back to {DEFAULT_TIMEZONE}"
             )
             self.timezone = DEFAULT_TIMEZONE
@@ -101,7 +103,7 @@ class ServiceMonitor:
                 self.notification_email,
             ]
         ):
-            logging.warning("Email configuration incomplete. Skipping notification.")
+            logger.warning("Email configuration incomplete. Skipping notification.")
             return
 
         # Use timezone-aware datetime for timestamp
@@ -141,11 +143,11 @@ class ServiceMonitor:
         loop = asyncio.get_running_loop()
         try:
             await loop.run_in_executor(None, self._send_email_sync, msg)
-            logging.info(
+            logger.info(
                 f"Email notification sent for service {service_name} - Status: {status}"
             )
         except Exception as e:
-            logging.error(f"Failed to send email notification: {e}")
+            logger.error(f"Failed to send email notification: {e}")
 
     def _send_email_sync(self, msg):
         """Synchronous method to send email, to be run in an executor."""
@@ -181,7 +183,7 @@ class ServiceMonitor:
         try:
             tz = pytz.timezone(service_tz)
         except pytz.exceptions.UnknownTimeZoneError:
-            logging.warning(
+            logger.warning(
                 f"Unknown timezone for service: {service_tz}, using {self.timezone}"
             )
             tz = self.tz
@@ -229,12 +231,12 @@ class ServiceMonitor:
                 if response.status == 200:
                     return True
                 else:
-                    logging.warning(
+                    logger.warning(
                         f"HTTP check failed for {service['url']}: status code {response.status}"
                     )
                     return False
         except Exception as e:
-            logging.warning(
+            logger.warning(
                 f"HTTP check exception for {service['url']}: {type(e).__name__}: {e!s}"
             )
             return False
@@ -287,17 +289,17 @@ class ServiceMonitor:
         while True:
             if self._is_in_maintenance(service):
                 if not was_in_maintenance:
-                    logging.info(
+                    logger.info(
                         f"Service {service_name} ({service['type']}) entering maintenance window"
                     )
                     was_in_maintenance = True
-                logging.info(
+                logger.info(
                     f"Service {service_name} ({service['type']}) status: [maintenance]MAINTENANCE[/maintenance]"
                 )
                 await asyncio.sleep(60)  # Check maintenance status every minute
                 continue
             elif was_in_maintenance:
-                logging.info(
+                logger.info(
                     f"Service {service_name} ({service['type']}) exiting maintenance window"
                 )
                 was_in_maintenance = False
@@ -309,11 +311,11 @@ class ServiceMonitor:
             # Try service check up to max_tries times
             for attempt in range(service["max_tries"]):
                 try:
-                    logging.debug(
+                    logger.debug(
                         f"Service {service_name} ({service['type']}) - Attempt {attempt + 1}/{service['max_tries']}"
                     )
                     if await check_func(service):
-                        logging.debug(
+                        logger.debug(
                             f"Service {service_name} ({service['type']}) - Attempt {attempt + 1} successful"
                         )
                         break
@@ -324,13 +326,13 @@ class ServiceMonitor:
                         error_reason = f"Could not connect to port {service['port']}"
                     else:  # ping
                         error_reason = "No ping response"
-                    logging.debug(
+                    logger.debug(
                         f"Service {service_name} ({service['type']}) - Attempt {attempt + 1} failed: {error_reason}"
                     )
                 except Exception as e:
                     failures += 1
                     error_reason = str(e)
-                    logging.debug(
+                    logger.debug(
                         f"Service {service_name} ({service['type']}) - Attempt {attempt + 1} failed with error: {e}"
                     )
 
@@ -350,7 +352,7 @@ class ServiceMonitor:
                         datetime.now()
                     )  # Record when service went down
                 self.service_states[service_name] = False
-                logging.info(
+                logger.info(
                     f"Service {service_name} ({service['type']}) status: [down]DOWN[/down]"
                 )
             else:  # Service is UP
@@ -362,7 +364,7 @@ class ServiceMonitor:
                         service_name, "UP"
                     )  # Downtime will be included if available
                 self.service_states[service_name] = True
-                logging.info(
+                logger.info(
                     f"Service {service_name} ({service['type']}) status: [up]UP[/up]"
                 )
 
@@ -382,13 +384,13 @@ class ServiceMonitor:
                     ) as response,
                 ):
                     if response.status == 200:
-                        logging.info("Healthcheck ping successful")
+                        logger.info("Healthcheck ping successful")
                     else:
-                        logging.warning(
+                        logger.warning(
                             f"Healthcheck ping failed with status code: {response.status}"
                         )
             except Exception as e:
-                logging.error(f"Failed to ping healthcheck: {type(e).__name__}: {e!s}")
+                logger.error(f"Failed to ping healthcheck: {type(e).__name__}: {e!s}")
 
             # Sleep for the configured interval (default 1 hour)
             await asyncio.sleep(self.healthcheck_config.get("interval", 3600))
@@ -409,9 +411,9 @@ class ServiceMonitor:
         try:
             await asyncio.gather(*tasks)
         except asyncio.CancelledError:
-            logging.info("Monitoring tasks cancelled")
+            logger.info("Monitoring tasks cancelled")
         except Exception as e:
-            logging.error(f"Error in monitoring: {e}")
+            logger.error(f"Error in monitoring: {e}")
 
 
 async def main():
@@ -424,4 +426,4 @@ def run():
     try:
         asyncio.run(main())
     except KeyboardInterrupt:
-        logging.info("Monitoring stopped by user")
+        logger.info("Monitoring stopped by user")

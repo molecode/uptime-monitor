@@ -187,7 +187,7 @@ class TestMaintenanceWindow:
         service = monitor.config["services"]["test-service"]
 
         with (
-            patch("uptime_monitor.logging") as mock_logging,
+            patch("uptime_monitor.logger") as mock_logger,
             patch("uptime_monitor.datetime") as mock_dt,
         ):
             mock_dt.now.return_value = datetime(2024, 1, 15, 3, 0, 0, tzinfo=pytz.UTC)
@@ -196,7 +196,7 @@ class TestMaintenanceWindow:
 
             monitor._is_in_maintenance(service)
             # Should use default timezone and log warning
-            mock_logging.warning.assert_called_once()
+            mock_logger.warning.assert_called_once()
 
         os.unlink(config_file)
 

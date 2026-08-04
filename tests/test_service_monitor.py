@@ -35,12 +35,12 @@ class TestServiceMonitor:
             yaml.dump(mock_config, f)
             config_file = f.name
 
-        with patch("uptime_monitor.logging") as mock_logging:
+        with patch("uptime_monitor.logger") as mock_logger:
             monitor = ServiceMonitor(config_file)
 
             # Should fall back to default timezone
             assert monitor.timezone == "Europe/Berlin"
-            mock_logging.warning.assert_called_once()
+            mock_logger.warning.assert_called_once()
 
         os.unlink(config_file)
 
@@ -280,9 +280,9 @@ class TestEmailNotifications:
         monitor = ServiceMonitor(config_file)
         monitor.smtp_server = None
 
-        with patch("uptime_monitor.logging") as mock_logging:
+        with patch("uptime_monitor.logger") as mock_logger:
             await monitor._send_email_notification("test-service", "DOWN")
-            mock_logging.warning.assert_called_once()
+            mock_logger.warning.assert_called_once()
 
         os.unlink(config_file)
 
