@@ -146,7 +146,7 @@ class ServiceMonitor:
             logger.info(
                 f"Email notification sent for service {service_name} - Status: {status}"
             )
-        except Exception as e:
+        except (smtplib.SMTPException, OSError) as e:
             logger.error(f"Failed to send email notification: {e}")
 
     def _send_email_sync(self, msg):
@@ -245,7 +245,7 @@ class ServiceMonitor:
                         f"HTTP check failed for {service['url']}: status code {response.status}"
                     )
                     return False
-        except Exception as e:
+        except (aiohttp.ClientError, TimeoutError) as e:
             logger.warning(
                 f"HTTP check exception for {service['url']}: {type(e).__name__}: {e!s}"
             )
@@ -256,7 +256,7 @@ class ServiceMonitor:
         try:
             # Run socket operations in executor to prevent blocking the event loop
             return await loop.run_in_executor(None, self._check_port_sync, service)
-        except Exception:
+        except OSError:
             return False
 
     def _check_port_sync(self, service: dict) -> bool:
@@ -275,7 +275,7 @@ class ServiceMonitor:
         try:
             # Run ping operation in executor as it's blocking
             return await loop.run_in_executor(None, self._check_ping_sync, service)
-        except Exception:
+        except (OSError, ping3.errors.PingError):
             return False
 
     def _check_ping_sync(self, service: dict) -> bool:
@@ -283,7 +283,9 @@ class ServiceMonitor:
         try:
             result = ping3.ping(service["host"], timeout=service["timeout"])
             return result is not None
-        except Exception:
+        except (OSError, ping3.errors.PingError):
+            # Raw sockets need privileges; ping3 also raises for unreachable hosts
+            # when ping3.EXCEPTIONS is enabled.
             return False
 
     async def _check_service(self, service_name: str, service: dict):
@@ -339,7 +341,10 @@ class ServiceMonitor:
                     logger.debug(
                         f"Service {service_name} ({service['type']}) - Attempt {attempt + 1} failed: {error_reason}"
                     )
-                except Exception as e:
+                except Exception as e:  # noqa: BLE001 - retry-loop safety net
+                    # Anything a check function did not handle counts as a failed
+                    # attempt. Letting it escape would kill this service's task
+                    # for the lifetime of the process.
                     failures += 1
                     error_reason = str(e)
                     logger.debug(
@@ -399,7 +404,7 @@ class ServiceMonitor:
                         logger.warning(
                             f"Healthcheck ping failed with status code: {response.status}"
                         )
-            except Exception as e:
+            except Exception as e:  # noqa: BLE001 - keeps the ping loop alive
                 logger.error(f"Failed to ping healthcheck: {type(e).__name__}: {e!s}")
 
             # Sleep for the configured interval (default 1 hour)
@@ -422,7 +427,7 @@ class ServiceMonitor:
             await asyncio.gather(*tasks)
         except asyncio.CancelledError:
             logger.info("Monitoring tasks cancelled")
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001 - top-level handler, logs and exits
             logger.error(f"Error in monitoring: {e}")
 
 

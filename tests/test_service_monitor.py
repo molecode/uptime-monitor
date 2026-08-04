@@ -3,6 +3,7 @@ import tempfile
 from datetime import datetime, timedelta
 from unittest.mock import AsyncMock, Mock, patch
 
+import aiohttp
 import pytest
 import pytz
 
@@ -129,14 +130,36 @@ class TestServiceChecks:
         os.unlink(config_file)
 
     @pytest.mark.asyncio
-    async def test_check_http_exception(self, config_file):
-        """Test HTTP check with exception."""
+    @pytest.mark.parametrize(
+        "error",
+        [
+            aiohttp.ClientError("Connection error"),
+            aiohttp.ClientConnectorError(Mock(), OSError("refused")),
+            TimeoutError(),
+        ],
+    )
+    async def test_check_http_exception(self, config_file, error):
+        """Test HTTP check with the network errors aiohttp can raise."""
         monitor = ServiceMonitor(config_file)
         service = {"url": "https://example.com", "timeout": 5}
 
-        with patch("aiohttp.ClientSession", side_effect=Exception("Connection error")):
+        with patch("aiohttp.ClientSession", side_effect=error):
             result = await monitor._check_http(service)
             assert result is False
+
+        os.unlink(config_file)
+
+    @pytest.mark.asyncio
+    async def test_check_http_unexpected_error_propagates(self, config_file):
+        """Unexpected errors are not swallowed; the retry loop handles them."""
+        monitor = ServiceMonitor(config_file)
+        service = {"url": "https://example.com", "timeout": 5}
+
+        with (
+            patch("aiohttp.ClientSession", side_effect=RuntimeError("boom")),
+            pytest.raises(RuntimeError),
+        ):
+            await monitor._check_http(service)
 
         os.unlink(config_file)
 
