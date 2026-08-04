@@ -1,7 +1,8 @@
-import tempfile
 import os
-from unittest.mock import patch
+import tempfile
 from datetime import datetime
+from unittest.mock import patch
+
 import pytz
 
 from uptime_monitor import ServiceMonitor
@@ -55,7 +56,6 @@ class TestMaintenanceWindow:
         with patch("uptime_monitor.datetime") as mock_dt:
             mock_dt.now.return_value = datetime(2024, 1, 15, 3, 0, 0, tzinfo=pytz.UTC)
             mock_dt.combine = datetime.combine
-            mock_dt.strptime = datetime.strptime
 
             result = monitor._is_in_maintenance(service)
             assert result is True
@@ -64,7 +64,6 @@ class TestMaintenanceWindow:
         with patch("uptime_monitor.datetime") as mock_dt:
             mock_dt.now.return_value = datetime(2024, 1, 15, 5, 0, 0, tzinfo=pytz.UTC)
             mock_dt.combine = datetime.combine
-            mock_dt.strptime = datetime.strptime
 
             result = monitor._is_in_maintenance(service)
             assert result is False
@@ -82,7 +81,6 @@ class TestMaintenanceWindow:
         with patch("uptime_monitor.datetime") as mock_dt:
             mock_dt.now.return_value = datetime(2024, 1, 15, 23, 30, 0, tzinfo=pytz.UTC)
             mock_dt.combine = datetime.combine
-            mock_dt.strptime = datetime.strptime
 
             result = monitor._is_in_maintenance(service)
             assert result is True
@@ -91,7 +89,6 @@ class TestMaintenanceWindow:
         with patch("uptime_monitor.datetime") as mock_dt:
             mock_dt.now.return_value = datetime(2024, 1, 16, 0, 30, 0, tzinfo=pytz.UTC)
             mock_dt.combine = datetime.combine
-            mock_dt.strptime = datetime.strptime
 
             result = monitor._is_in_maintenance(service)
             assert result is True
@@ -100,7 +97,6 @@ class TestMaintenanceWindow:
         with patch("uptime_monitor.datetime") as mock_dt:
             mock_dt.now.return_value = datetime(2024, 1, 15, 12, 0, 0, tzinfo=pytz.UTC)
             mock_dt.combine = datetime.combine
-            mock_dt.strptime = datetime.strptime
 
             result = monitor._is_in_maintenance(service)
             assert result is False
@@ -118,7 +114,6 @@ class TestMaintenanceWindow:
         with patch("uptime_monitor.datetime") as mock_dt:
             mock_dt.now.return_value = datetime(2024, 1, 31, 23, 30, 0, tzinfo=pytz.UTC)
             mock_dt.combine = datetime.combine
-            mock_dt.strptime = datetime.strptime
 
             # This should not raise ValueError anymore
             result = monitor._is_in_maintenance(service)
@@ -128,7 +123,6 @@ class TestMaintenanceWindow:
         with patch("uptime_monitor.datetime") as mock_dt:
             mock_dt.now.return_value = datetime(2024, 2, 1, 0, 30, 0, tzinfo=pytz.UTC)
             mock_dt.combine = datetime.combine
-            mock_dt.strptime = datetime.strptime
 
             result = monitor._is_in_maintenance(service)
             assert result is True
@@ -146,7 +140,6 @@ class TestMaintenanceWindow:
         with patch("uptime_monitor.datetime") as mock_dt:
             mock_dt.now.return_value = datetime(2024, 2, 29, 23, 30, 0, tzinfo=pytz.UTC)
             mock_dt.combine = datetime.combine
-            mock_dt.strptime = datetime.strptime
 
             result = monitor._is_in_maintenance(service)
             assert result is True
@@ -168,7 +161,6 @@ class TestMaintenanceWindow:
             ny_tz = pytz.timezone("America/New_York")
             mock_dt.now.return_value = datetime(2024, 1, 15, 3, 0, 0, tzinfo=ny_tz)
             mock_dt.combine = datetime.combine
-            mock_dt.strptime = datetime.strptime
 
             result = monitor._is_in_maintenance(service)
             assert result is True
@@ -185,17 +177,16 @@ class TestMaintenanceWindow:
         )
         service = monitor.config["services"]["test-service"]
 
-        with patch("uptime_monitor.logging") as mock_logging:
-            with patch("uptime_monitor.datetime") as mock_dt:
-                mock_dt.now.return_value = datetime(
-                    2024, 1, 15, 3, 0, 0, tzinfo=pytz.UTC
-                )
-                mock_dt.combine = datetime.combine
-                mock_dt.strptime = datetime.strptime
+        with (
+            patch("uptime_monitor.logger") as mock_logger,
+            patch("uptime_monitor.datetime") as mock_dt,
+        ):
+            mock_dt.now.return_value = datetime(2024, 1, 15, 3, 0, 0, tzinfo=pytz.UTC)
+            mock_dt.combine = datetime.combine
 
-                monitor._is_in_maintenance(service)
-                # Should use default timezone and log warning
-                mock_logging.warning.assert_called_once()
+            monitor._is_in_maintenance(service)
+            # Should use default timezone and log warning
+            mock_logger.warning.assert_called_once()
 
         os.unlink(config_file)
 
@@ -210,7 +201,6 @@ class TestMaintenanceWindow:
         with patch("uptime_monitor.datetime") as mock_dt:
             mock_dt.now.return_value = datetime(2024, 1, 15, 0, 0, 0, tzinfo=pytz.UTC)
             mock_dt.combine = datetime.combine
-            mock_dt.strptime = datetime.strptime
 
             result = monitor._is_in_maintenance(service)
             # This should handle the edge case properly
@@ -229,7 +219,6 @@ class TestMaintenanceWindow:
         with patch("uptime_monitor.datetime") as mock_dt:
             mock_dt.now.return_value = datetime(2024, 1, 15, 2, 0, 0, tzinfo=pytz.UTC)
             mock_dt.combine = datetime.combine
-            mock_dt.strptime = datetime.strptime
 
             result = monitor._is_in_maintenance(service)
             assert result is True
@@ -238,7 +227,6 @@ class TestMaintenanceWindow:
         with patch("uptime_monitor.datetime") as mock_dt:
             mock_dt.now.return_value = datetime(2024, 1, 15, 4, 0, 0, tzinfo=pytz.UTC)
             mock_dt.combine = datetime.combine
-            mock_dt.strptime = datetime.strptime
 
             result = monitor._is_in_maintenance(service)
             assert result is True

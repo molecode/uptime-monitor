@@ -1,10 +1,11 @@
-import tempfile
 import os
-from unittest.mock import patch
+import tempfile
 from datetime import datetime, timedelta
+from unittest.mock import patch
+
 import pytz
 
-from uptime_monitor.dashboard import WebServiceMonitor, User
+from uptime_monitor.dashboard import User, WebServiceMonitor
 
 
 class TestUser:
@@ -94,7 +95,9 @@ class TestWebServiceMonitor:
 
         # Set up some service states
         monitor.service_states = {"test-http": True, "test-port": False}
-        monitor.down_since = {"test-port": datetime.now() - timedelta(minutes=30)}
+        monitor.down_since = {
+            "test-port": datetime.now(tz=pytz.UTC) - timedelta(minutes=30)
+        }
 
         with patch("uptime_monitor.dashboard.datetime") as mock_dt:
             mock_dt.now.return_value = datetime(2024, 1, 15, 12, 0, 0, tzinfo=pytz.UTC)

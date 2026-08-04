@@ -1,9 +1,10 @@
-import pytest
 import tempfile
-import yaml
-from unittest.mock import patch
 from datetime import datetime
+from unittest.mock import patch
+
+import pytest
 import pytz
+import yaml
 
 
 @pytest.fixture
@@ -63,7 +64,6 @@ def mock_datetime():
         # Set a fixed datetime for testing
         mock_dt.now.return_value = datetime(2024, 1, 15, 12, 0, 0, tzinfo=pytz.UTC)
         mock_dt.combine = datetime.combine
-        mock_dt.strptime = datetime.strptime
         yield mock_dt
 
 

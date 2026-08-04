@@ -1,8 +1,10 @@
-import pytest
-import tempfile
 import os
-from unittest.mock import Mock, patch, AsyncMock
+import tempfile
 from datetime import datetime, timedelta
+from unittest.mock import AsyncMock, Mock, patch
+
+import aiohttp
+import pytest
 import pytz
 
 from uptime_monitor import ServiceMonitor
@@ -34,12 +36,12 @@ class TestServiceMonitor:
             yaml.dump(mock_config, f)
             config_file = f.name
 
-        with patch("uptime_monitor.logging") as mock_logging:
+        with patch("uptime_monitor.logger") as mock_logger:
             monitor = ServiceMonitor(config_file)
 
             # Should fall back to default timezone
             assert monitor.timezone == "Europe/Berlin"
-            mock_logging.warning.assert_called_once()
+            mock_logger.warning.assert_called_once()
 
         os.unlink(config_file)
 
@@ -128,14 +130,36 @@ class TestServiceChecks:
         os.unlink(config_file)
 
     @pytest.mark.asyncio
-    async def test_check_http_exception(self, config_file):
-        """Test HTTP check with exception."""
+    @pytest.mark.parametrize(
+        "error",
+        [
+            aiohttp.ClientError("Connection error"),
+            aiohttp.ClientConnectorError(Mock(), OSError("refused")),
+            TimeoutError(),
+        ],
+    )
+    async def test_check_http_exception(self, config_file, error):
+        """Test HTTP check with the network errors aiohttp can raise."""
         monitor = ServiceMonitor(config_file)
         service = {"url": "https://example.com", "timeout": 5}
 
-        with patch("aiohttp.ClientSession", side_effect=Exception("Connection error")):
+        with patch("aiohttp.ClientSession", side_effect=error):
             result = await monitor._check_http(service)
             assert result is False
+
+        os.unlink(config_file)
+
+    @pytest.mark.asyncio
+    async def test_check_http_unexpected_error_propagates(self, config_file):
+        """Unexpected errors are not swallowed; the retry loop handles them."""
+        monitor = ServiceMonitor(config_file)
+        service = {"url": "https://example.com", "timeout": 5}
+
+        with (
+            patch("aiohttp.ClientSession", side_effect=RuntimeError("boom")),
+            pytest.raises(RuntimeError),
+        ):
+            await monitor._check_http(service)
 
         os.unlink(config_file)
 
@@ -256,7 +280,9 @@ class TestEmailNotifications:
     async def test_send_email_notification_up_with_downtime(self, config_file):
         """Test sending email notification for service up with downtime tracking."""
         monitor = ServiceMonitor(config_file)
-        monitor.down_since["test-service"] = datetime.now() - timedelta(hours=1)
+        monitor.down_since["test-service"] = datetime.now(monitor.tz) - timedelta(
+            hours=1
+        )
 
         with patch.object(monitor, "_send_email_sync") as mock_send:
             await monitor._send_email_notification("test-service", "UP")
@@ -277,9 +303,9 @@ class TestEmailNotifications:
         monitor = ServiceMonitor(config_file)
         monitor.smtp_server = None
 
-        with patch("uptime_monitor.logging") as mock_logging:
+        with patch("uptime_monitor.logger") as mock_logger:
             await monitor._send_email_notification("test-service", "DOWN")
-            mock_logging.warning.assert_called_once()
+            mock_logger.warning.assert_called_once()
 
         os.unlink(config_file)
 
