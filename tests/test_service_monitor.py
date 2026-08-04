@@ -257,7 +257,9 @@ class TestEmailNotifications:
     async def test_send_email_notification_up_with_downtime(self, config_file):
         """Test sending email notification for service up with downtime tracking."""
         monitor = ServiceMonitor(config_file)
-        monitor.down_since["test-service"] = datetime.now() - timedelta(hours=1)
+        # Must stay naive: _send_email_notification subtracts this from a naive
+        # datetime.now(). Drop the noqa once the production code is timezone-aware.
+        monitor.down_since["test-service"] = datetime.now() - timedelta(hours=1)  # noqa: DTZ005
 
         with patch.object(monitor, "_send_email_sync") as mock_send:
             await monitor._send_email_notification("test-service", "UP")
