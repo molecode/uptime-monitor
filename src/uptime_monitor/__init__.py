@@ -2,7 +2,7 @@ import asyncio
 import logging
 import smtplib
 import socket
-from datetime import datetime, timedelta
+from datetime import datetime, time, timedelta
 from email.message import EmailMessage
 
 import aiohttp
@@ -120,7 +120,7 @@ class ServiceMonitor:
         if status == "UP" and service_name in self.down_since:
             down_start = self.down_since[service_name]
             downtime = self._format_duration(
-                (datetime.now() - down_start).total_seconds()
+                (datetime.now(self.tz) - down_start).total_seconds()
             )
             content.append(f"Total downtime: {downtime}")
             del self.down_since[service_name]  # Clear the downtime tracker
@@ -174,6 +174,16 @@ class ServiceMonitor:
 
         return ", ".join(parts)
 
+    @staticmethod
+    def _parse_window_time(value: str) -> time:
+        """Parse a maintenance window "HH:MM" value into a naive time.
+
+        Hours may be unpadded ("7:20"), which is what the previous strptime
+        based parsing accepted and what existing configs rely on.
+        """
+        hour, minute = (int(part) for part in str(value).split(":"))
+        return time(hour, minute)
+
     def _is_in_maintenance(self, service: dict) -> bool:
         if "maintenance_window" not in service:
             return False
@@ -198,13 +208,13 @@ class ServiceMonitor:
         # Create datetime objects for today with the maintenance window times
         today = datetime.now(tz).date()
 
-        # Create timezone-aware datetime objects for start and end times
+        # Create timezone-aware datetime objects for start and end times.
+        # The window is a wall-clock time, so parse it as a plain time and let
+        # localize() attach the service timezone.
         start_dt = tz.localize(
-            datetime.combine(today, datetime.strptime(start_time, "%H:%M").time())
+            datetime.combine(today, self._parse_window_time(start_time))
         )
-        end_dt = tz.localize(
-            datetime.combine(today, datetime.strptime(end_time, "%H:%M").time())
-        )
+        end_dt = tz.localize(datetime.combine(today, self._parse_window_time(end_time)))
 
         # If end time is earlier than start time, it means the window crosses midnight
         # So we need to add one day to the end time
@@ -348,8 +358,8 @@ class ServiceMonitor:
                     await self._send_email_notification(
                         service_name, "DOWN", error_reason
                     )
-                    self.down_since[service_name] = (
-                        datetime.now()
+                    self.down_since[service_name] = datetime.now(
+                        self.tz
                     )  # Record when service went down
                 self.service_states[service_name] = False
                 logger.info(
