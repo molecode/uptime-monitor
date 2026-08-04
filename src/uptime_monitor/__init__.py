@@ -91,7 +91,7 @@ class ServiceMonitor:
         self.notification_email = self.email_config.get("notification_email")
 
     async def _send_email_notification(
-        self, service_name: str, status: str, reason: str = None
+        self, service_name: str, status: str, reason: str | None = None
     ):
         if not all(
             [
