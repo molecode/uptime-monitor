@@ -64,7 +64,6 @@ def mock_datetime():
         # Set a fixed datetime for testing
         mock_dt.now.return_value = datetime(2024, 1, 15, 12, 0, 0, tzinfo=pytz.UTC)
         mock_dt.combine = datetime.combine
-        mock_dt.strptime = datetime.strptime
         yield mock_dt
 
 
