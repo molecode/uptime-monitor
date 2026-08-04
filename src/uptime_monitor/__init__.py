@@ -4,7 +4,6 @@ import smtplib
 import socket
 from datetime import datetime, timedelta
 from email.message import EmailMessage
-from typing import Dict
 
 import aiohttp
 import ping3
@@ -223,17 +222,17 @@ class ServiceMonitor:
 
     async def _check_http(self, service: dict) -> bool:
         try:
-            async with aiohttp.ClientSession() as session:
-                async with session.get(
-                    service["url"], timeout=service["timeout"]
-                ) as response:
-                    if response.status == 200:
-                        return True
-                    else:
-                        logging.warning(
-                            f"HTTP check failed for {service['url']}: status code {response.status}"
-                        )
-                        return False
+            async with (
+                aiohttp.ClientSession() as session,
+                session.get(service["url"], timeout=service["timeout"]) as response,
+            ):
+                if response.status == 200:
+                    return True
+                else:
+                    logging.warning(
+                        f"HTTP check failed for {service['url']}: status code {response.status}"
+                    )
+                    return False
         except Exception as e:
             logging.warning(
                 f"HTTP check exception for {service['url']}: {type(e).__name__}: {e!s}"
@@ -376,16 +375,18 @@ class ServiceMonitor:
 
         while True:
             try:
-                async with aiohttp.ClientSession() as session:
-                    async with session.get(
+                async with (
+                    aiohttp.ClientSession() as session,
+                    session.get(
                         self.healthcheck_config["url"], timeout=600
-                    ) as response:
-                        if response.status == 200:
-                            logging.info("Healthcheck ping successful")
-                        else:
-                            logging.warning(
-                                f"Healthcheck ping failed with status code: {response.status}"
-                            )
+                    ) as response,
+                ):
+                    if response.status == 200:
+                        logging.info("Healthcheck ping successful")
+                    else:
+                        logging.warning(
+                            f"Healthcheck ping failed with status code: {response.status}"
+                        )
             except Exception as e:
                 logging.error(f"Failed to ping healthcheck: {type(e).__name__}: {e!s}")
 
