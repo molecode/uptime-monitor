@@ -3,7 +3,6 @@ import os
 import secrets
 import threading
 from datetime import datetime
-from typing import Optional
 
 from flask import Flask, redirect, render_template, request, url_for
 from flask_login import (
@@ -46,8 +45,8 @@ class WebServiceMonitor(ServiceMonitor):
         self.setup_routes()
 
         # Initialize asyncio task for monitoring
-        self.monitoring_task: Optional[asyncio.Task] = None
-        self.loop: Optional[asyncio.AbstractEventLoop] = None
+        self.monitoring_task: asyncio.Task | None = None
+        self.loop: asyncio.AbstractEventLoop | None = None
 
     @property
     def dashboard_config(self):

@@ -173,7 +173,7 @@ class ServiceMonitor:
 
         return ", ".join(parts)
 
-    def _is_in_maintenance(self, service: Dict) -> bool:
+    def _is_in_maintenance(self, service: dict) -> bool:
         if "maintenance_window" not in service:
             return False
 
@@ -221,7 +221,7 @@ class ServiceMonitor:
         else:  # Window is within the same day
             return start <= now <= end
 
-    async def _check_http(self, service: Dict) -> bool:
+    async def _check_http(self, service: dict) -> bool:
         try:
             async with aiohttp.ClientSession() as session:
                 async with session.get(
@@ -236,11 +236,11 @@ class ServiceMonitor:
                         return False
         except Exception as e:
             logging.warning(
-                f"HTTP check exception for {service['url']}: {type(e).__name__}: {str(e)}"
+                f"HTTP check exception for {service['url']}: {type(e).__name__}: {e!s}"
             )
             return False
 
-    async def _check_port(self, service: Dict) -> bool:
+    async def _check_port(self, service: dict) -> bool:
         loop = asyncio.get_running_loop()
         try:
             # Run socket operations in executor to prevent blocking the event loop
@@ -248,7 +248,7 @@ class ServiceMonitor:
         except Exception:
             return False
 
-    def _check_port_sync(self, service: Dict) -> bool:
+    def _check_port_sync(self, service: dict) -> bool:
         """Synchronous implementation of port checking to run in executor."""
         try:
             sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -256,10 +256,10 @@ class ServiceMonitor:
             result = sock.connect_ex((service["host"], service["port"]))
             sock.close()
             return result == 0
-        except socket.error:
+        except OSError:
             return False
 
-    async def _check_ping(self, service: Dict) -> bool:
+    async def _check_ping(self, service: dict) -> bool:
         loop = asyncio.get_running_loop()
         try:
             # Run ping operation in executor as it's blocking
@@ -267,7 +267,7 @@ class ServiceMonitor:
         except Exception:
             return False
 
-    def _check_ping_sync(self, service: Dict) -> bool:
+    def _check_ping_sync(self, service: dict) -> bool:
         """Synchronous implementation of ping checking to run in executor."""
         try:
             result = ping3.ping(service["host"], timeout=service["timeout"])
@@ -275,7 +275,7 @@ class ServiceMonitor:
         except Exception:
             return False
 
-    async def _check_service(self, service_name: str, service: Dict):
+    async def _check_service(self, service_name: str, service: dict):
         check_functions = {
             "http": self._check_http,
             "port": self._check_port,
@@ -387,9 +387,7 @@ class ServiceMonitor:
                                 f"Healthcheck ping failed with status code: {response.status}"
                             )
             except Exception as e:
-                logging.error(
-                    f"Failed to ping healthcheck: {type(e).__name__}: {str(e)}"
-                )
+                logging.error(f"Failed to ping healthcheck: {type(e).__name__}: {e!s}")
 
             # Sleep for the configured interval (default 1 hour)
             await asyncio.sleep(self.healthcheck_config.get("interval", 3600))

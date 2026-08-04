@@ -1,7 +1,8 @@
-import tempfile
 import os
-from unittest.mock import patch
+import tempfile
 from datetime import datetime
+from unittest.mock import patch
+
 import pytz
 
 from uptime_monitor import ServiceMonitor

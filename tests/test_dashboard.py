@@ -1,10 +1,11 @@
-import tempfile
 import os
-from unittest.mock import patch
+import tempfile
 from datetime import datetime, timedelta
+from unittest.mock import patch
+
 import pytz
 
-from uptime_monitor.dashboard import WebServiceMonitor, User
+from uptime_monitor.dashboard import User, WebServiceMonitor
 
 
 class TestUser:

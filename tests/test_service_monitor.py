@@ -1,8 +1,9 @@
-import pytest
-import tempfile
 import os
-from unittest.mock import Mock, patch, AsyncMock
+import tempfile
 from datetime import datetime, timedelta
+from unittest.mock import AsyncMock, Mock, patch
+
+import pytest
 import pytz
 
 from uptime_monitor import ServiceMonitor

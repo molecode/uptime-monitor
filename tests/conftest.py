@@ -1,9 +1,10 @@
-import pytest
 import tempfile
-import yaml
-from unittest.mock import patch
 from datetime import datetime
+from unittest.mock import patch
+
+import pytest
 import pytz
+import yaml
 
 
 @pytest.fixture
